@@ -64,7 +64,7 @@ class Config:
         self.export_query = ""
         self.temp_dir = os.path.join(".", "tmp")
         self.export_fields = "*"
-        self.out_file = ""
+        self.out_file = "export"
         self.display_values = True
         self.min_rows = 0
         self.delta_export = False

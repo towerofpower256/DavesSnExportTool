@@ -34,6 +34,66 @@ Using the export tool will export the data into multiple files, each being **pag
 
 ![Exported data spreadsheet](doc/exported-data-csv.png)
 
+### Help
+
+```
+usage: DavesSnExportTool.py [-h] [--auth-type {none,basic,cookies}] [--auth-username AUTH_USERNAME] [--auth-password AUTH_PASSWORD] [--auth-cookies AUTH_COOKIES]
+                            [--instance-url INSTANCE_URL] [--verbose] [--config CONFIG] [--combine-output] [--export-type {csv}] [--export-table EXPORT_TABLE]
+                            [--export-fields EXPORT_FIELDS] [--export-query EXPORT_QUERY] [--page-size PAGE_SIZE] [--start-sysid START_SYSID] [--temp-dir TEMP_DIR] [--out OUT]
+                            [--display-values DISPLAY_VALUES] [--no-display-values NO_DISPLAY_VALUES] [--min-rows MIN_ROWS] [--state STATE] [--delta-export]
+                            [--delta-timestamp DELTA_TIMESTAMP] [--delta-field DELTA_FIELD] [--progress] [--proxy PROXY]
+
+options:
+  -h, --help            show this help message and exit
+  --auth-type {none,basic,cookies}, -a {none,basic,cookies}
+                        Type of authentication to use.
+  --auth-username AUTH_USERNAME, -au AUTH_USERNAME
+                        Username to authenticate with.
+  --auth-password AUTH_PASSWORD, -ap AUTH_PASSWORD
+                        Password to authenticate with.
+  --auth-cookies AUTH_COOKIES, -ac AUTH_COOKIES
+                        When using cookies auth, a semi-colon separated list of cookies to use.
+  --instance-url INSTANCE_URL, -i INSTANCE_URL
+                        Base URL of the SN instance. E.g. myinstance.service-now.com
+  --verbose, -v         Enable verbose logging.
+  --config CONFIG, -c CONFIG
+                        Load config from config file.
+  --combine-output, -C  Combine the pages of results into 1 output file. Not recommended for multi-GB size exports.
+  --export-type {csv}, -e {csv}
+                        Type of export.
+  --export-table EXPORT_TABLE, -t EXPORT_TABLE
+                        Name of the table to export data from.
+  --export-fields EXPORT_FIELDS, -f EXPORT_FIELDS
+                        List of fields to export, comma-separated, or '*' for all fields.
+  --export-query EXPORT_QUERY, -q EXPORT_QUERY
+                        Query to use when exporting data.
+  --page-size PAGE_SIZE, -S PAGE_SIZE
+                        How many rows to export per page.
+  --start-sysid START_SYSID, -r START_SYSID
+                        The sys_id to start exporting from (not including the sys_id). Useful for resuming a failed export. Overrides the last sysid in the state file.
+  --temp-dir TEMP_DIR, -T TEMP_DIR
+                        Directory to save temporary files to.
+  --out OUT, -o OUT     Name of file to output the export to. Pages of results will also use this name.
+  --display-values DISPLAY_VALUES, -d DISPLAY_VALUES
+                        Enable display values when exporting data.
+  --no-display-values NO_DISPLAY_VALUES, -D NO_DISPLAY_VALUES
+                        Disable display values when exporting data.
+  --min-rows MIN_ROWS, -m MIN_ROWS
+                        The minimum amount of rows to export. Useful when there's lots of data 'hidden for security reasons' and may result in an empty page of data. If not provided,
+                        export will end on the 1st empty page of data.
+  --state STATE, -s STATE
+                        State file location. Used for tracking page number for resume support, and delta timestamp to export data after last export.
+  --delta-export, -X    Enable delta exports, only exporting data sys_updated_on since the last export.
+  --delta-timestamp DELTA_TIMESTAMP, -x DELTA_TIMESTAMP
+                        Add a sys_updated_on query to only export data updated after the given timestamp. Must be correctly formatted UTC timestamp YYYY-MM-DD HH:MM:SS. Leave blank if
+                        you want to use what's in the state file.
+  --delta-field DELTA_FIELD, -F DELTA_FIELD
+                        The field to filter the delta timestamp on. Default: sys_updated_on
+  --progress, -P        Show progress while exporting.
+  --proxy PROXY, -p PROXY
+                        Web proxy address to use, authentication must be in-line. http://<ip>:<port> or http://<username>:<password>@<ip>:<port>
+```
+
 **Note:** The sys_id column is included in every export due to how the tool exports data.
 
 ### Example 1
@@ -70,11 +130,18 @@ The config file in `./tmp/config.json`
 }
 ```
 
+### Example 4
+Export incidents with a query for only incidents with a category of "Inquery / Help" OR a service name of "email".
+
+```
+python3 ./DavesSnExportTool.py -i dev123456.service-now.com -t incident -o incident_feed -f "*" --query "category=inquiry^ORbusiness_service.name=email" --auth-type cookies --auth-cookies "<browser cookies>"
+```
+
 ### Example 5
 Export incidents with all fields, but only export incidents that have changed since the last export. A **delta** export.
 
 ```
-python3 ./DavesSnExportTool.py -i dev123456.service-now.com -t incident -o incident_feed -f "*" --state ./tmp/state.json --delta-export --auth-type cookie --auth-cookies "<browser cookies>"
+python3 ./DavesSnExportTool.py -i dev123456.service-now.com -t incident -o incident_feed -f "*" --state ./tmp/state.json --delta-export --auth-type cookies --auth-cookies "<browser cookies>"
 ```
 
 * 1st run: export's everything, saves the date & time to the state file.
@@ -96,6 +163,11 @@ Example:
 ```
 python3 DavesSnExportTool.py --instance-url dev123456.service-now.com --export-table incident --auth-type cookies --auth-cookies "JSESSIONID=77714E2F7CD182B0062562679A308BDF; glide_node_id_for_js=504f76108a593bd78bf14b6a7cdbf0831845ef9a2376f053b10259ec00f071b8;..."
 ```
+
+## Can't use "new query" or "order by"
+Due to the way that the tool exports data (sorted by sys_id), queries cannot include:
+* ^NQ or "new query"
+* ^ORDERBY or ordering within the query
 
 ## Combining very large reports
 It is possible for this tool to combine lots of rows of data into 1 large CSV file. However, there are limits to what tools like Excel will be able to open.
